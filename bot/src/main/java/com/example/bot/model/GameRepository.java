@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
-public interface UserRepository extends CrudRepository<User, Long> {
-
+public interface GameRepository extends CrudRepository<Game,Long> {
+        @Query(name = "Game.findByUsername")
+        List<Game> findByUsername(@Param("contact") String contact);
 }

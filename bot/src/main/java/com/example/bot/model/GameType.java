@@ -2,6 +2,7 @@ package com.example.bot.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 
 @Entity(name = "gameTypes")
 public class GameType {
