@@ -19,6 +19,7 @@ import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScope
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -30,12 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-
-
 @Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
-    
+
     final BotConfig botConfig;
 
     @Autowired
@@ -52,18 +51,17 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private final String ACTIONS = "Нажмите на одну из кнопок";
 
-    public TelegramBot (BotConfig botConfig) {
+    public TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
         List<BotCommand> listofCommands = new ArrayList<>();
-        listofCommands.add(new BotCommand("/start","Начало работы"));
-        listofCommands.add(new BotCommand("/creategame","Создать новый матч"));
-        listofCommands.add(new BotCommand("/mygames","Просмотреть мои матчи"));
-        listofCommands.add(new BotCommand("/showallgames","Просмотреть все матчи"));
-        listofCommands.add(new BotCommand("/help","Помощь по использованию данного бота"));
+        listofCommands.add(new BotCommand("/start", "Начало работы"));
+        listofCommands.add(new BotCommand("/creategame", "Создать новый матч"));
+        listofCommands.add(new BotCommand("/mygames", "Просмотреть мои матчи"));
+        listofCommands.add(new BotCommand("/showallgames", "Просмотреть все матчи"));
+        listofCommands.add(new BotCommand("/help", "Помощь по использованию данного бота"));
         try {
             this.execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
-        }
-        catch (TelegramApiException e) {
+        } catch (TelegramApiException e) {
             log.error("Error settings bot command ", e.getMessage());
         }
     }
@@ -86,7 +84,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         AWAITING_PLAYERS,
         IDLE
     }
-    
+
     private final Map<Long, ConversationState> chatStates = new ConcurrentHashMap<>();
 
     public Map<String, String> newGame = new HashMap<>();
@@ -97,17 +95,17 @@ public class TelegramBot extends TelegramLongPollingBot {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
 
-             ConversationState state = chatStates.getOrDefault(chatId, ConversationState.IDLE);
+            ConversationState state = chatStates.getOrDefault(chatId, ConversationState.IDLE);
 
-            switch(state) {
+            switch (state) {
                 case IDLE:
                     if ("/start".equals(messageText)) {
                         registerUser(update.getMessage());
-                        startCommandReceive(chatId, messageText);  
-                        } 
-                    break;     
+                        startCommandReceive(chatId, messageText);
+                    }
+                    break;
                 case AWAITING_PLACE:
-                    newGame.put("place",messageText);
+                    newGame.put("place", messageText);
                     SendMessage message = new SendMessage();
                     message.setChatId(String.valueOf(chatId));
                     message.setText("Введите дату и время игры:");
@@ -115,7 +113,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     chatStates.put(chatId, ConversationState.AWAITING_TIME);
                     break;
                 case AWAITING_TIME:
-                    newGame.put("time",messageText);
+                    newGame.put("time", messageText);
                     SendMessage messageTime = new SendMessage();
                     messageTime.setChatId(String.valueOf(chatId));
                     messageTime.setText("Введите стоимость игры:");
@@ -123,7 +121,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     chatStates.put(chatId, ConversationState.AWAITING_PLAYERS);
                     break;
                 case AWAITING_PLAYERS:
-                    newGame.put("players",messageText);
+                    newGame.put("players", messageText);
                     SendMessage messagePlayers = new SendMessage();
                     messagePlayers.setChatId(String.valueOf(chatId));
                     messagePlayers.setText("Введите количество свободных мест(сколько игроков требуется):");
@@ -131,7 +129,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     chatStates.put(chatId, ConversationState.AWAITING_COST);
                     break;
                 case AWAITING_COST:
-                    newGame.put("cost",messageText);
+                    newGame.put("cost", messageText);
                     SendMessage messageCost = new SendMessage();
                     messageCost.setChatId(String.valueOf(chatId));
                     messageCost.setText("Введите дополнительную информацию об игре(если её нет введите прочерк)");
@@ -139,10 +137,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                     chatStates.put(chatId, ConversationState.AWAITING_COMMENT);
                     break;
                 case AWAITING_COMMENT:
-                    newGame.put("comment",messageText);
+                    newGame.put("comment", messageText);
                     createNewGame();
                     String textGame = "Ваша игра создана, Вы можете её посмотреть и отредактировать во вкладке Показать мои игры\n\n";
-                    switch(newGame.get("gameType")) {
+                    switch (newGame.get("gameType")) {
                         case "1":
                             textGame = textGame + EmojiParser.parseToUnicode("ФУТБОЛЬНЫЙ МАТЧ" + ":soccer:\n");
                             break;
@@ -150,15 +148,21 @@ public class TelegramBot extends TelegramLongPollingBot {
                             textGame = textGame + EmojiParser.parseToUnicode("БАСКЕТБОЛЬНЫЙ МАТЧ" + ":basketball:\n");
                             break;
                         default:
-                           textGame = textGame + "";
-                           break;
+                            textGame = textGame + "";
+                            break;
                     }
-                    textGame = textGame + EmojiParser.parseToUnicode(":round_pushpin:" + " МЕСТО ИГРЫ: " + newGame.get("place") + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":alarm_clock:" + "ДАТА И ВРЕМЯ ИГРЫ: " + newGame.get("time") + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":dollar:" + " СТОИМОСТЬ ИГРЫ: " + newGame.get("cost") + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":heavy_check_mark:" + " КОЛИЧЕСТВО МЕСТ: " + newGame.get("players") + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":information_source:" + " ДОП ИНФА: " + newGame.get("comment") + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":iphone:" + " КОНТАКТ ДЛЯ СВЯЗИ: @" + newGame.get("contact") + "\n");
+                    textGame = textGame + EmojiParser
+                            .parseToUnicode(":round_pushpin:" + " МЕСТО ИГРЫ: " + newGame.get("place") + "\n");
+                    textGame = textGame + EmojiParser
+                            .parseToUnicode(":alarm_clock:" + "ДАТА И ВРЕМЯ ИГРЫ: " + newGame.get("time") + "\n");
+                    textGame = textGame
+                            + EmojiParser.parseToUnicode(":dollar:" + " СТОИМОСТЬ ИГРЫ: " + newGame.get("cost") + "\n");
+                    textGame = textGame + EmojiParser.parseToUnicode(
+                            ":heavy_check_mark:" + " КОЛИЧЕСТВО МЕСТ: " + newGame.get("players") + "\n");
+                    textGame = textGame + EmojiParser
+                            .parseToUnicode(":information_source:" + " ДОП ИНФА: " + newGame.get("comment") + "\n");
+                    textGame = textGame + EmojiParser
+                            .parseToUnicode(":iphone:" + " КОНТАКТ ДЛЯ СВЯЗИ: @" + newGame.get("contact") + "\n");
                     handleCallback(newGame.get("gameType"), chatId, textGame);
                     newGame.clear();
                     chatStates.put(chatId, ConversationState.IDLE);
@@ -177,40 +181,172 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (callbackData.equals("game_1")) {
                 String text = "Вы выбрали футбол";
                 handleCallback("1", chatId, ACTIONS);
-            }
-            else if (callbackData.equals("game_2")) {
+            } else if (callbackData.equals("game_2")) {
                 String text = "Вы выбрали баскетбол";
                 handleCallback("2", chatId, ACTIONS);
-            }
-            else if (callbackData.startsWith("CREATE_GAME_")) {
+            } else if (callbackData.startsWith("CREATE_GAME_")) {
                 String[] parts = callbackData.split("_", 3);
                 String gameType = parts[2];
                 SendMessage message = new SendMessage();
                 message.setChatId(String.valueOf(chatId));
-                newGame.put("gameType",gameType);
+                newGame.put("gameType", gameType);
                 newGame.put("contact", update.getCallbackQuery().getFrom().getUserName());
                 message.setText("Давайте введем данные вашей игры. \nНачнём с места, где вы хотите её проводить");
                 try {
                     execute(message);
                     chatStates.put(chatId, ConversationState.AWAITING_PLACE);
-                }
-                catch (TelegramApiException e) {
+                } catch (TelegramApiException e) {
                     log.error("Error ocurred ", e.getMessage());
-                } 
-            }
-            else if (callbackData.startsWith("SHOW_MY_GAMES")) {
+                }
+            } else if (callbackData.startsWith("SHOW_MY_GAMES")) {
                 String userName = update.getCallbackQuery().getFrom().getUserName();
                 List<Game> gamesOfUser = gameRepository.findByUsername(userName);
-                String text = "";
-                for (Game game : gamesOfUser) {
-                    text = text + TemplateForGame(text,game);
+                String[] parts = callbackData.split("_", 4);
+                String calData = parts[0] + parts[1] + parts[2];
+                String page = parts[3];
+                try {
+                    execute(sendPaginatedListMyGames(chatId, Integer.parseInt(page), (int) messageId));
+                } catch (TelegramApiException e) {
+                    log.error("Error edit page with all games", e);
                 }
-                SendMessage sendMessage = new SendMessage();
-                sendMessage.setChatId(String.valueOf(chatId));
-                sendMessage.setText(text);
-                executeMessage(sendMessage);
+            } else if (callbackData.startsWith("SHOW_GAMES_")) {
+                String[] parts = callbackData.split("_", 3);
+                String calData = parts[0] + parts[1];
+                String page = parts[2];
+                try {
+                    execute(sendPaginatedList(chatId, Integer.parseInt(page), (int) messageId));
+                } catch (TelegramApiException e) {
+                    log.error("Error edit page with all games", e);
+                }
             }
         }
+    }
+
+    public EditMessageText sendPaginatedList(long chatId, int page, int messageId) {
+        List<Game> gamesOfUser = new ArrayList<>();
+        gameRepository.findAll().forEach(gamesOfUser::add);
+
+        int itemsPerPage = 3;
+        int totalPages = (int) Math.ceil((double) gamesOfUser.size() / itemsPerPage);
+
+        // Создаем текст сообщения с нумерацией страниц
+        StringBuilder textBuilder = new StringBuilder();
+        textBuilder.append("Страница ").append(page + 1).append(" из ").append(totalPages).append("\n\n");
+
+        // Создаем клавиатуру
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        // Обрабатываем игры для текущей страницы
+        gamesOfUser.stream()
+                .skip(page * itemsPerPage)
+                .limit(itemsPerPage)
+                .forEach(game -> {
+                    int gameIndex = gamesOfUser.indexOf(game) + 1;
+                    textBuilder.append(TemplateForGame("", game, gameIndex));
+
+                    // Добавляем кнопку для игры
+                    List<InlineKeyboardButton> row = new ArrayList<>();
+                    row.add(InlineKeyboardButton.builder()
+                            .text("Участвовать в игре " + gameIndex)
+                            .callbackData("game_" + game.getId())
+                            .build());
+                    rows.add(row);
+                });
+        // Добавляем кнопки навигации, если нужно
+        if (totalPages > 1) {
+            List<InlineKeyboardButton> navigationRow = new ArrayList<>();
+
+            if (page > 0) {
+                navigationRow.add(InlineKeyboardButton.builder()
+                        .text("◀️ Назад")
+                        .callbackData("SHOW_GAMES_" + (page - 1))
+                        .build());
+            }
+
+            if (page < totalPages - 1) {
+                navigationRow.add(InlineKeyboardButton.builder()
+                        .text("Вперед ▶️")
+                        .callbackData("SHOW_GAMES_" + (page + 1))
+                        .build());
+            }
+
+            rows.add(navigationRow);
+        }
+
+        keyboardMarkup.setKeyboard(rows);
+
+        // Создаем объект для редактирования сообщения
+        return EditMessageText.builder()
+                .chatId(String.valueOf(chatId))
+                .messageId(messageId)
+                .text(textBuilder.toString())
+                .replyMarkup(keyboardMarkup)
+                .build();
+    }
+
+    
+    public EditMessageText sendPaginatedListMyGames(long chatId, int page, int messageId) {
+        List<Game> gamesOfUser = new ArrayList<>();
+        gameRepository.findAll().forEach(gamesOfUser::add);
+
+        int itemsPerPage = 3;
+        int totalPages = (int) Math.ceil((double) gamesOfUser.size() / itemsPerPage);
+
+        // Создаем текст сообщения с нумерацией страниц
+        StringBuilder textBuilder = new StringBuilder();
+        textBuilder.append("Страница ").append(page + 1).append(" из ").append(totalPages).append("\n\n");
+
+        // Создаем клавиатуру
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        // Обрабатываем игры для текущей страницы
+        gamesOfUser.stream()
+                .skip(page * itemsPerPage)
+                .limit(itemsPerPage)
+                .forEach(game -> {
+                    int gameIndex = gamesOfUser.indexOf(game) + 1;
+                    textBuilder.append(TemplateForGame("", game, gameIndex));
+
+                    // Добавляем кнопку для игры
+                    List<InlineKeyboardButton> row = new ArrayList<>();
+                    row.add(InlineKeyboardButton.builder()
+                            .text("Редактировать " + gameIndex + " игру")
+                            .callbackData("game_" + game.getId())
+                            .build());
+                    rows.add(row);
+                });
+        // Добавляем кнопки навигации, если нужно
+        if (totalPages > 1) {
+            List<InlineKeyboardButton> navigationRow = new ArrayList<>();
+
+            if (page > 0) {
+                navigationRow.add(InlineKeyboardButton.builder()
+                        .text("◀️ Назад")
+                        .callbackData("SHOW_MY_GAMES_" + (page - 1))
+                        .build());
+            }
+
+            if (page < totalPages - 1) {
+                navigationRow.add(InlineKeyboardButton.builder()
+                        .text("Вперед ▶️")
+                        .callbackData("SHOW_MY_GAMES_" + (page + 1))
+                        .build());
+            }
+
+            rows.add(navigationRow);
+        }
+
+        keyboardMarkup.setKeyboard(rows);
+
+        // Создаем объект для редактирования сообщения
+        return EditMessageText.builder()
+                .chatId(String.valueOf(chatId))
+                .messageId(messageId)
+                .text(textBuilder.toString())
+                .replyMarkup(keyboardMarkup)
+                .build();
     }
 
     private void createNewGame() {
@@ -225,25 +361,31 @@ public class TelegramBot extends TelegramLongPollingBot {
         log.info("Game created " + game);
     }
 
-    private String TemplateForGame(String textGame, Game game) {
-                    switch(game.getTypeOfGame().toString()) {
-                        case "1":
-                            textGame = textGame + EmojiParser.parseToUnicode("ФУТБОЛЬНЫЙ МАТЧ" + ":soccer:\n");
-                            break;
-                        case "2":
-                            textGame = textGame + EmojiParser.parseToUnicode("БАСКЕТБОЛЬНЫЙ МАТЧ" + ":basketball:\n");
-                            break;
-                        default:
-                           textGame = textGame + "";
-                           break;
-                    }
-                    textGame = textGame + EmojiParser.parseToUnicode(":round_pushpin:" + " МЕСТО ИГРЫ: " + game.getPlace() + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":alarm_clock:" + "ДАТА И ВРЕМЯ ИГРЫ: " + game.getTimeOfGame() + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":dollar:" + " СТОИМОСТЬ ИГРЫ: " + game.getCost() + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":heavy_check_mark:" + " КОЛИЧЕСТВО МЕСТ: " + game.getPlayers() + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":information_source:" + " ДОП ИНФА: " + game.getComment() + "\n");
-                    textGame = textGame + EmojiParser.parseToUnicode(":iphone:" + " КОНТАКТ ДЛЯ СВЯЗИ: @" + game.getContact() + "\n\n\n");
-                    return textGame;
+    private String TemplateForGame(String textGame, Game game, int i) {
+        textGame = textGame + i + ". ";
+        switch (game.getTypeOfGame().toString()) {
+            case "1":
+                textGame = textGame + EmojiParser.parseToUnicode("ФУТБОЛЬНЫЙ МАТЧ" + ":soccer:\n");
+                break;
+            case "2":
+                textGame = textGame + EmojiParser.parseToUnicode("БАСКЕТБОЛЬНЫЙ МАТЧ" + ":basketball:\n");
+                break;
+            default:
+                textGame = textGame + "";
+                break;
+        }
+        textGame = textGame
+                + EmojiParser.parseToUnicode(":round_pushpin:" + " МЕСТО ИГРЫ: " + game.getPlace() + "\n");
+        textGame = textGame
+                + EmojiParser.parseToUnicode(":alarm_clock:" + "ДАТА И ВРЕМЯ ИГРЫ: " + game.getTimeOfGame() + "\n");
+        textGame = textGame + EmojiParser.parseToUnicode(":dollar:" + " СТОИМОСТЬ ИГРЫ: " + game.getCost() + "\n");
+        textGame = textGame + EmojiParser
+                .parseToUnicode(":heavy_check_mark:" + " КОЛИЧЕСТВО МЕСТ: " + game.getPlayers() + "\n");
+        textGame = textGame
+                + EmojiParser.parseToUnicode(":information_source:" + " ДОП ИНФА: " + game.getComment() + "\n");
+        textGame = textGame
+                + EmojiParser.parseToUnicode(":iphone:" + " КОНТАКТ ДЛЯ СВЯЗИ: @" + game.getContact() + "\n\n\n");
+        return textGame;
     }
 
     private void handleCallback(String type, long chatId, String text) {
@@ -254,18 +396,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         Iterable<GameType> gameList = gameTypeReposritory.findAll();
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        List<InlineKeyboardButton> rowInline = new ArrayList<>(); 
+        List<InlineKeyboardButton> rowInline = new ArrayList<>();
         InlineKeyboardButton buttonCreate = new InlineKeyboardButton();
         buttonCreate.setText("Создать новую игру");
         buttonCreate.setCallbackData("CREATE_GAME_" + type);
         rowsInline.add(Collections.singletonList(buttonCreate));
         InlineKeyboardButton buttonShow = new InlineKeyboardButton();
         buttonShow.setText("Показать все игры");
-        buttonShow.setCallbackData("SHOW_GAMES");
+        buttonShow.setCallbackData("SHOW_GAMES_0");
         rowsInline.add(Collections.singletonList(buttonShow));
         InlineKeyboardButton buttonShowMy = new InlineKeyboardButton();
         buttonShowMy.setText("Показать мои игры");
-        buttonShowMy.setCallbackData("SHOW_MY_GAMES");
+        buttonShowMy.setCallbackData("SHOW_MY_GAMES_0");
         rowsInline.add(Collections.singletonList(buttonShowMy));
         markupInline.setKeyboard(rowsInline);
         message.setReplyMarkup(markupInline);
@@ -275,15 +417,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void executeMessage(SendMessage message) {
         try {
             execute(message);
-            }
-        catch (TelegramApiException e) {
+        } catch (TelegramApiException e) {
             log.error("Error ocurred ", e.getMessage());
-        } 
+        }
     }
 
     private void registerUser(Message msg) {
         if (userRepository.findById(msg.getChatId()).isEmpty()) {
-            
+
             var chatId = msg.getChatId();
             var chat = msg.getChat();
 
@@ -332,8 +473,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         try {
             execute(sendMessage);
-        }
-        catch (TelegramApiException e) {
+        } catch (TelegramApiException e) {
             log.error("Error occured: ", e.getMessage());
         }
     }
